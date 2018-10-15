@@ -1,7 +1,7 @@
 # Pygame template - skeleton for a new pygame project
 import pygame
 import random
-
+import math
 
 from os import path
 img_dir = path.join(path.dirname(__file__), 'img')
@@ -119,28 +119,51 @@ class Player(pygame.sprite.Sprite):
         surface.blit(self.barrel, self.rect)
     
     def shoot(self):
-        bullet = Bullet(self.rect.centerx, self.rect.top)
+        bullet = Bullet(self.rect.centerx, self.rect.centery, self.angle)
         all_sprites.add(bullet)
         bullets.add(bullet)
 
 class Bullet(pygame.sprite.Sprite):
 
-    def __init__(self, x, y):
+    def __init__(self, x, y, angle):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface( (10, 20) )
+        #self.image = pygame.Surface( (10, 20) )
         #self.image.fill(YELLOW)
-        self.image = laser_img
-        self.image.set_colorkey(BLACK)
-        self.rect = self.image.get_rect()
-        self.rect.bottom = y
-        self.rect.centerx = x
-        self.speedy = -10
+        laser_filename = "laserBlue16.png"
+        self.original_laser = pygame.image.load(path.join(img_dir, laser_filename)).convert()
+        self.original_laser.set_colorkey(BLACK)
+
+        self.angle = math.radians(angle - 90)
+        self.image = pygame.transform.rotate(self.original_laser, angle)
+        self.rect = self.image.get_rect(center=(x, y))
+        
+        self.move = [self.rect.x, self.rect.y]
+        self.speed_magnitude = 5
+        self.speed = (-1 * self.speed_magnitude*math.cos(self.angle),
+                      self.speed_magnitude*math.sin(self.angle))
+
+        #self.rect.bottom = y
+        #self.rect.centerx = x
+
+        #self.projectile_velicity = 10
+        #self.speedy = -10
+        #self.speedx = 0
+        #self.angle = angle
+
     def update(self):
-        self.rect.y += self.speedy
+        '''
+        Off the screen positions handled in this class definition
+        collisions between this and other sprites are handled in main
+        '''
 
-        if self.rect.bottom == 0:
+        #self.rect.y += self.speedy
+        #self.rect.x += self.speedx
+        self.move[0] += self.speed[0]
+        self.move[1] += self.speed[1]
+        self.rect.topleft = self.move
+
+        if self.rect.bottom == 0 or self.rect.left == 0 or self.rect.right == WIDTH:
             self.kill()
-
 
 class Mob(pygame.sprite.Sprite):
 
@@ -174,10 +197,8 @@ class Mob(pygame.sprite.Sprite):
             self.speedy = random.randrange(1,8)
 
 
-laser_filename = "laserBlue16.png"
 meteor_filename = "meteorBrown_big2.png"
 
-laser_img = pygame.image.load(path.join(img_dir, laser_filename)).convert()
 meteor_img = pygame.image.load(path.join(img_dir, meteor_filename)).convert()
 
 all_sprites = pygame.sprite.Group()
