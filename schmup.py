@@ -5,18 +5,18 @@ import random
 
 from os import path
 img_dir = path.join(path.dirname(__file__), 'img')
-WIDTH = 480
+WIDTH  = 480
 HEIGHT = 600
-FPS = 60
+FPS    = 60
 
 # define colors
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-BLUE = (0, 0, 255)
+WHITE  = (255, 255, 255)
+BLACK  = (0, 0, 0)
+RED    = (255, 0, 0)
+GREEN  = (0, 255, 0)
+BLUE   = (0, 0, 255)
 YELLOW = (255, 255, 0)
-
+BROWN  = ( 165,  42,  42)
 # initialize pygame and create window
 pygame.init()
 pygame.mixer.init()
@@ -24,17 +24,23 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Schmup")
 clock = pygame.time.Clock()
 
-
+SPIN_DICT = {pygame.K_LEFT  :  1,
+             pygame.K_RIGHT : -1}
 
 class Player(pygame.sprite.Sprite):
 
-    def __init__(self):
+    def __init__(self, location):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface( (50,40) )
+
+        ship_filename = "playerShip2_blue.png"
+        self.original_barrel  = pygame.image.load(path.join(img_dir, ship_filename)).convert()
+        self.original_barrel = pygame.transform.scale(self.original_barrel, (50,38))
+        self.original_barrel.set_colorkey(BLACK)
+        #= pygame.Surface( (50,40) )
+        self.barrel = self.original_barrel.copy()
+
+        self.rect = self.barrel.get_rect(center=location)
         #self.image.fill(GREEN)
-        self.image = pygame.transform.scale(player_img, (50,38))
-        self.image.set_colorkey(BLACK)
-        self.rect = self.image.get_rect()
         
         self.radius = 20
         # circle for collision detect debug line
@@ -45,17 +51,52 @@ class Player(pygame.sprite.Sprite):
 
         self.speedx = 0
         self.speedy = 0
+        
+        self.angle = 0
+        self.spin = 0
+        self.rotate_speed = 3
+        self.rotate(True)
 
-    def update(self ):
+    def rotate(self, force=False):
+        """
+        Rotate our ship image and set the new rect's center to the
+        old rect's center to ensure our image doesn't shift.
+        """
+        if self.spin or force:
+            self.angle += self.rotate_speed*self.spin
+            self.barrel = pygame.transform.rotate(self.original_barrel, self.angle)
+            self.rect = self.barrel.get_rect(center=self.rect.center)
+
+    def get_event(self, event):
+        """ Our spaceship event handler !! """
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                self.shoot()
+                #objects.add(Laser(self.rect.center, self.angle))
+
+    def update(self):
+
+        keystate = pygame.key.get_pressed()
+
+        self.spin = 0
+        for key in SPIN_DICT:
+            if keystate[key]:
+                self.spin += SPIN_DICT[key]
+        self.rotate()
+
+
         self.speedx = 0
         self.speedy = 0
 
-        keystate = pygame.key.get_pressed()
+        '''
         if keystate[pygame.K_LEFT]:
             self.speedx = -5
         elif keystate[pygame.K_RIGHT]:
             self.speedx = 5
-        elif keystate[pygame.K_UP]:
+        '''
+
+        '''
+        if keystate[pygame.K_UP]:
             self.speedy = -5
         elif keystate[pygame.K_DOWN]:
             self.speedy = 5
@@ -68,11 +109,15 @@ class Player(pygame.sprite.Sprite):
         elif self.rect.left < 0:
             self.rect.left = 0
 
-
         if self.rect.top < HEIGHT - HEIGHT // 2:
             self.rect.top = HEIGHT - HEIGHT // 2
-        elif self.rect.bottom > HEIGHT - self.rect.height:
-            self.rect.bottom = HEIGHT - self.rect.height
+        elif self.rect.bottom > HEIGHT:
+            self.rect.bottom = HEIGHT
+        '''
+    def draw(self, surface):
+        """Draw base and barrel to the target surface."""
+        surface.blit(self.barrel, self.rect)
+    
     def shoot(self):
         bullet = Bullet(self.rect.centerx, self.rect.top)
         all_sprites.add(bullet)
@@ -89,7 +134,7 @@ class Bullet(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.bottom = y
         self.rect.centerx = x
-        self.speedy = -20
+        self.speedy = -10
     def update(self):
         self.rect.y += self.speedy
 
@@ -129,11 +174,9 @@ class Mob(pygame.sprite.Sprite):
             self.speedy = random.randrange(1,8)
 
 
-ship_filename = "playerShip2_blue.png"
 laser_filename = "laserBlue16.png"
 meteor_filename = "meteorBrown_big2.png"
 
-player_img = pygame.image.load(path.join(img_dir, ship_filename)).convert()
 laser_img = pygame.image.load(path.join(img_dir, laser_filename)).convert()
 meteor_img = pygame.image.load(path.join(img_dir, meteor_filename)).convert()
 
@@ -141,8 +184,8 @@ all_sprites = pygame.sprite.Group()
 mobs = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
 
-player = Player()
-all_sprites.add(player)
+player = Player((WIDTH//2, HEIGHT))
+#all_sprites.add(player)
 
 for i in range(8):
     m = Mob()
@@ -166,12 +209,12 @@ while running:
                     running = False
         if event.type == pygame.QUIT:
             running = False
+        player.get_event(event)
 
 
     # Update
     all_sprites.update()
-
-    
+    player.update()
     #true true means if a mobs collides, it's killed, it bullet collides it gets killed too
     hits = pygame.sprite.groupcollide(mobs, bullets,True,True)
     for hit in hits:
@@ -182,7 +225,6 @@ while running:
     
     #see if mob hit a player 
     hit_player = pygame.sprite.spritecollide(player, mobs, False, pygame.sprite.collide_circle)
-
     
     if hit_player:
         pass
@@ -192,6 +234,7 @@ while running:
     screen.fill(BLACK)
     #screen.blit(background,background_rect)
     all_sprites.draw(screen)
+    player.draw(screen)
     # *after* drawing everything, flip the display
     pygame.display.flip()
 
