@@ -247,8 +247,8 @@ while running:
     #see if mob hit a player 
     hit_player = pygame.sprite.spritecollide(player, mobs, False, pygame.sprite.collide_circle)
     
-    if hit_player:
-        pass
+    for ship_impact in hit_player:
+        score -= 1
         #running = False
 
     # Draw / render
@@ -256,6 +256,13 @@ while running:
     #screen.blit(background,background_rect)
     all_sprites.draw(screen)
     player.draw(screen)
+
+    font = pygame.font.SysFont("Calibri", 25, True, False)
+    if score > 0:
+        text = font.render('Score: {}'.format(score), True, GREEN)
+    else:
+        text = font.render('Score: {}'.format(score), True, RED)
+    screen.blit(text, [10, 10] )
     # *after* drawing everything, flip the display
     pygame.display.flip()
 
