@@ -230,7 +230,6 @@ player = Player((WIDTH//2, HEIGHT))
 
 t = Turret(240,100,225)
 all_sprites.add(t)
-#all_sprites.add(player)
 
 for i in range(8):
     m = Mob()
