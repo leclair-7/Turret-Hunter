@@ -133,9 +133,10 @@ class Turret(pygame.sprite.Sprite):
         self.rect.y = y
 
         self.angle = angle
-        self.next_fire = pygame.time.get_ticks() + 500
+        self.next_fire = pygame.time.get_ticks() + 400
         
     def shoot(self):
+        '''
         bullet = Bullet(self.rect.centerx, self.rect.centery, self.angle)
         all_sprites.add(bullet)
         bullets.add(bullet)
@@ -145,8 +146,8 @@ class Turret(pygame.sprite.Sprite):
             all_sprites.add(bullet)
             bullets.add(bullet)
 
-            self.next_fire = pygame.time.get_ticks() + 500  
-        '''
+            self.next_fire = pygame.time.get_ticks() + 400  
+        
     def draw(self, surface):
         surface.blit(self.rect)
     
