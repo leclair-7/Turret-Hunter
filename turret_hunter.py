@@ -24,7 +24,7 @@ BROWN  = ( 165,  42,  42)
 pygame.init()
 pygame.mixer.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Schmup")
+pygame.display.set_caption("Turret Hunter")
 clock = pygame.time.Clock()
 
 SPIN_DICT = {pygame.K_LEFT  :  1,
@@ -239,7 +239,7 @@ turret_bullets = pygame.sprite.Group()
 turrets = pygame.sprite.Group()
 player = Player((WIDTH//2, HEIGHT))
 
-turret_list = [ (20, 20 ,180),
+turret_list = [ (20, 60 ,180),
                 (420, 20,145),
                 (240,100,135),                
                ]
