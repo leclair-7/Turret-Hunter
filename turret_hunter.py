@@ -9,9 +9,12 @@ WIDTH  = 480
 HEIGHT = 600
 FPS    = 60
 
+WITH_ASTEROIDS = False
+
 # define colors
 WHITE  = (255, 255, 255)
 BLACK  = (0, 0, 0)
+GREY   = (122, 122, 82)
 RED    = (255, 0, 0)
 GREEN  = (0, 255, 0)
 BLUE   = (0, 0, 255)
@@ -57,6 +60,8 @@ class Player(pygame.sprite.Sprite):
         self.rotate_speed = 3
         self.rotate(True)
 
+        self.shield = 50
+
     def rotate(self, force=False):
         """
         Rotate our ship image and set the new rect's center to the
@@ -91,13 +96,13 @@ class Player(pygame.sprite.Sprite):
         self.move_angle = math.radians(self.angle - 90)
         
         if keystate[pygame.K_UP]:
-            self.velocity = 2
+            self.velocity = 4
             self.speedx = round(-1 * self.velocity * math.cos(self.move_angle)  )
             self.speedy = round(     self.velocity * math.sin(self.move_angle)  )
         elif keystate[pygame.K_DOWN]:
-            self.velocity = 0
-            self.speedx = -1 * self.velocity * math.cos(self.move_angle)
-            self.speedy =      self.velocity * math.sin(self.move_angle)        
+            self.velocity = 4
+            self.speedx = -1 * round(-1 * self.velocity * math.cos(self.move_angle)  )
+            self.speedy = -1 * round(     self.velocity * math.sin(self.move_angle)  )       
 
         self.rect.x += self.speedx
         self.rect.y += self.speedy
@@ -107,8 +112,8 @@ class Player(pygame.sprite.Sprite):
         elif self.rect.left < 0:
             self.rect.left = 0
 
-        if self.rect.top < HEIGHT - HEIGHT // 2:
-            self.rect.top = HEIGHT - HEIGHT // 2
+        if self.rect.top < HEIGHT - HEIGHT:
+            self.rect.top = HEIGHT - HEIGHT
         elif self.rect.bottom > HEIGHT:
             self.rect.bottom = HEIGHT
         
@@ -117,9 +122,9 @@ class Player(pygame.sprite.Sprite):
         surface.blit(self.barrel, self.rect)
     
     def shoot(self):
-        bullet = Bullet(self.rect.centerx, self.rect.centery, self.angle)
+        bullet = Bullet(self.rect.centerx, self.rect.centery, self.angle, "player")
         all_sprites.add(bullet)
-        bullets.add(bullet)
+        player_bullets.add(bullet)
 
 class Turret(pygame.sprite.Sprite):
 
@@ -127,24 +132,26 @@ class Turret(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
 
         self.image = pygame.Surface( (50,50) )
-        self.image.fill(RED)
+        self.image.fill(GREY)
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
 
+        self.radius = int(self.rect.width )
+        # circle for collision detect debug line
+        #pygame.draw.circle(self.image, RED, self.rect.center, self.radius)
+        
+
+        self.health = 5
         self.angle = angle
         self.next_fire = pygame.time.get_ticks() + 400
         
     def shoot(self):
-        '''
-        bullet = Bullet(self.rect.centerx, self.rect.centery, self.angle)
-        all_sprites.add(bullet)
-        bullets.add(bullet)
-        '''
+
         if pygame.time.get_ticks() > self.next_fire:
-            bullet = Bullet(self.rect.centerx, self.rect.centery, self.angle)
+            bullet = Bullet(self.rect.centerx, self.rect.centery, self.angle, "turret")
             all_sprites.add(bullet)
-            bullets.add(bullet)
+            turret_bullets.add(bullet)
 
             self.next_fire = pygame.time.get_ticks() + 400  
         
@@ -156,11 +163,16 @@ class Turret(pygame.sprite.Sprite):
 
 class Bullet(pygame.sprite.Sprite):
 
-    def __init__(self, x, y, angle):
+    def __init__(self, x, y, angle, shooter_type):
         pygame.sprite.Sprite.__init__(self)
         #self.image = pygame.Surface( (10, 20) )
         #self.image.fill(YELLOW)
-        laser_filename = "laserBlue16.png"
+        if shooter_type == "player":
+            laser_filename = "laserBlue16.png"
+        elif shooter_type == "turret":
+            laser_filename = "laserRed16.png"
+        else:
+            laser_filename = "laserGreen10.png"
         self.original_laser = pygame.image.load(path.join(img_dir, laser_filename)).convert()
         self.original_laser.set_colorkey(BLACK)
 
@@ -172,8 +184,6 @@ class Bullet(pygame.sprite.Sprite):
         self.speed_magnitude = 5
         self.speed = (-1 * self.speed_magnitude*math.cos(self.angle),
                       self.speed_magnitude*math.sin(self.angle))
-
-        
 
     def update(self):
         '''
@@ -220,22 +230,32 @@ class Mob(pygame.sprite.Sprite):
 
 
 meteor_filename = "meteorBrown_big2.png"
-
 meteor_img = pygame.image.load(path.join(img_dir, meteor_filename)).convert()
 
 all_sprites = pygame.sprite.Group()
 mobs = pygame.sprite.Group()
-bullets = pygame.sprite.Group()
-
+player_bullets = pygame.sprite.Group()
+turret_bullets = pygame.sprite.Group()
+turrets = pygame.sprite.Group()
 player = Player((WIDTH//2, HEIGHT))
 
-t = Turret(240,100,225)
-all_sprites.add(t)
+turret_list = [ (20, 20 ,180),
+                (420, 20,145),
+                (240,100,135),                
+               ]
+'''
+'''
+for t in turret_list:
+    new_turret = Turret(t[0], t[1], t[2])
+    all_sprites.add( new_turret )
+    turrets.add(new_turret)
+#all_sprites.add(t)
 
-for i in range(8):
-    m = Mob()
-    all_sprites.add(m)
-    mobs.add(m)
+if WITH_ASTEROIDS:
+    for i in range(8):
+        m = Mob()
+        all_sprites.add(m)
+        mobs.add(m)
 
 running = True
 score = 0
@@ -243,37 +263,49 @@ score = 0
 while running:
     # keep loop running at the right speed
     clock.tick(FPS)
-    # Process input (events)
+    # Process input (events)- Shooting and closing the game handled here
     for event in pygame.event.get():
         # check for closing window
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
                 player.shoot()
-
             if event.key == pygame.K_ESCAPE:
                     running = False
         if event.type == pygame.QUIT:
             running = False
         player.get_event(event)
 
-
     # Update
     all_sprites.update()
     player.update()
-    #true true means if a mobs collides, it's killed, it bullet collides it gets killed too
-    hits = pygame.sprite.groupcollide(mobs, bullets,True,True)
+    # True true means if a mobs collides, it's killed, it bullet collides it gets killed too
+    
+    hits = pygame.sprite.groupcollide(mobs, player_bullets, True, True)
     for hit in hits:
         score += 1
         m = Mob()
         all_sprites.add(m)
         mobs.add(m)
     
-    #see if mob hit a player 
-    hit_player = pygame.sprite.spritecollide(player, mobs, False, pygame.sprite.collide_circle)
-    
+    # Player bullets cancel out turret bullets 
+    pygame.sprite.groupcollide(player_bullets, turret_bullets, True, True)
+
+    # See if turret bullets hit a player 
+    hit_player = pygame.sprite.spritecollide(player, turret_bullets, True, pygame.sprite.collide_circle)
     for ship_impact in hit_player:
+        player.shield -= 1
         score -= 1
-        #running = False
+    
+    #see if mobs(asteroids) hit a player 
+    hit_player = pygame.sprite.spritecollide(player, mobs, True, pygame.sprite.collide_circle)
+    for ship_impact in hit_player:
+        player.shield -= 1
+        score -= 1
+
+    #see if turret bullets hit a player 
+    hits = pygame.sprite.groupcollide(player_bullets, turrets,True,True)
+    for ship_impact in hits:
+        score += 50
 
     # Draw / render
     screen.fill(BLACK)
@@ -282,11 +314,16 @@ while running:
     player.draw(screen)
 
     font = pygame.font.SysFont("Calibri", 25, True, False)
+    
     if score > 0:
         text = font.render('Score: {}'.format(score), True, GREEN)
     else:
         text = font.render('Score: {}'.format(score), True, RED)
+
+    text_player_shield = font.render('Shield: {}'.format(player.shield), True, GREEN)
+    
     screen.blit(text, [10, 10] )
+    screen.blit(text_player_shield , [10, 38] )
     # *after* drawing everything, flip the display
     pygame.display.flip()
 
