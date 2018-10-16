@@ -89,7 +89,7 @@ class Player(pygame.sprite.Sprite):
 
         self.velocity = 0
         self.move_angle = math.radians(self.angle - 90)
-        #print(keystate )
+        
         if keystate[pygame.K_UP]:
             self.velocity = 2
             self.speedx = round(-1 * self.velocity * math.cos(self.move_angle)  )
@@ -121,6 +121,38 @@ class Player(pygame.sprite.Sprite):
         all_sprites.add(bullet)
         bullets.add(bullet)
 
+class Turret(pygame.sprite.Sprite):
+
+    def __init__(self, x, y, angle):
+        pygame.sprite.Sprite.__init__(self)
+
+        self.image = pygame.Surface( (50,50) )
+        self.image.fill(RED)
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+        self.angle = angle
+        self.next_fire = pygame.time.get_ticks() + 500
+        
+    def shoot(self):
+        bullet = Bullet(self.rect.centerx, self.rect.centery, self.angle)
+        all_sprites.add(bullet)
+        bullets.add(bullet)
+        '''
+        if pygame.time.get_ticks() > self.next_fire:
+            bullet = Bullet(self.rect.centerx, self.rect.centery, self.angle)
+            all_sprites.add(bullet)
+            bullets.add(bullet)
+
+            self.next_fire = pygame.time.get_ticks() + 500  
+        '''
+    def draw(self, surface):
+        surface.blit(self.rect)
+    
+    def update(self):
+        self.shoot()
+
 class Bullet(pygame.sprite.Sprite):
 
     def __init__(self, x, y, angle):
@@ -140,13 +172,7 @@ class Bullet(pygame.sprite.Sprite):
         self.speed = (-1 * self.speed_magnitude*math.cos(self.angle),
                       self.speed_magnitude*math.sin(self.angle))
 
-        #self.rect.bottom = y
-        #self.rect.centerx = x
-
-        #self.projectile_velicity = 10
-        #self.speedy = -10
-        #self.speedx = 0
-        #self.angle = angle
+        
 
     def update(self):
         '''
@@ -154,8 +180,6 @@ class Bullet(pygame.sprite.Sprite):
         collisions between this and other sprites are handled in main
         '''
 
-        #self.rect.y += self.speedy
-        #self.rect.x += self.speedx
         self.move[0] += self.speed[0]
         self.move[1] += self.speed[1]
         self.rect.topleft = self.move
@@ -180,7 +204,6 @@ class Mob(pygame.sprite.Sprite):
         self.rect.x = random.randrange(0, WIDTH - self.rect.width )
         self.rect.y = random.randrange(0, WIDTH - self.rect.height )
 
-
         self.speedy = random.randrange(1,8)
         self.speedx = random.randrange(-3, 3)
         
@@ -204,6 +227,9 @@ mobs = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
 
 player = Player((WIDTH//2, HEIGHT))
+
+t = Turret(240,100,225)
+all_sprites.add(t)
 #all_sprites.add(player)
 
 for i in range(8):
