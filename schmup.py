@@ -84,23 +84,21 @@ class Player(pygame.sprite.Sprite):
                 self.spin += SPIN_DICT[key]
         self.rotate()
 
-
         self.speedx = 0
         self.speedy = 0
 
-        '''
-        if keystate[pygame.K_LEFT]:
-            self.speedx = -5
-        elif keystate[pygame.K_RIGHT]:
-            self.speedx = 5
-        '''
-
-        '''
+        self.velocity = 0
+        self.move_angle = math.radians(self.angle - 90)
+        #print(keystate )
         if keystate[pygame.K_UP]:
-            self.speedy = -5
+            self.velocity = 2
+            self.speedx = round(-1 * self.velocity * math.cos(self.move_angle)  )
+            self.speedy = round(     self.velocity * math.sin(self.move_angle)  )
         elif keystate[pygame.K_DOWN]:
-            self.speedy = 5
-        
+            self.velocity = 0
+            self.speedx = -1 * self.velocity * math.cos(self.move_angle)
+            self.speedy =      self.velocity * math.sin(self.move_angle)        
+
         self.rect.x += self.speedx
         self.rect.y += self.speedy
 
@@ -113,7 +111,7 @@ class Player(pygame.sprite.Sprite):
             self.rect.top = HEIGHT - HEIGHT // 2
         elif self.rect.bottom > HEIGHT:
             self.rect.bottom = HEIGHT
-        '''
+        
     def draw(self, surface):
         """Draw base and barrel to the target surface."""
         surface.blit(self.barrel, self.rect)
