@@ -228,103 +228,140 @@ class Mob(pygame.sprite.Sprite):
             self.rect.y = random.randrange(0, WIDTH - self.rect.height )
             self.speedy = random.randrange(1,8)
 
-
-meteor_filename = "meteorBrown_big2.png"
-meteor_img = pygame.image.load(path.join(img_dir, meteor_filename)).convert()
-
-all_sprites = pygame.sprite.Group()
-mobs = pygame.sprite.Group()
-player_bullets = pygame.sprite.Group()
-turret_bullets = pygame.sprite.Group()
-turrets = pygame.sprite.Group()
-player = Player((WIDTH//2, HEIGHT))
-
-turret_list = [ (20, 60 ,180),
-                (420, 20,145),
-                (240,100,135),                
-               ]
-'''
-'''
-for t in turret_list:
-    new_turret = Turret(t[0], t[1], t[2])
-    all_sprites.add( new_turret )
-    turrets.add(new_turret)
-#all_sprites.add(t)
-
-if WITH_ASTEROIDS:
-    for i in range(8):
-        m = Mob()
-        all_sprites.add(m)
-        mobs.add(m)
-
-running = True
-score = 0
-# Game loop
-while running:
-    # keep loop running at the right speed
-    clock.tick(FPS)
-    # Process input (events)- Shooting and closing the game handled here
-    for event in pygame.event.get():
-        # check for closing window
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE:
-                player.shoot()
-            if event.key == pygame.K_ESCAPE:
-                    running = False
-        if event.type == pygame.QUIT:
-            running = False
-        player.get_event(event)
-
-    # Update
-    all_sprites.update()
-    player.update()
-    # True true means if a mobs collides, it's killed, it bullet collides it gets killed too
+class TurretHunterGame:
     
-    hits = pygame.sprite.groupcollide(mobs, player_bullets, True, True)
-    for hit in hits:
-        score += 1
-        m = Mob()
-        all_sprites.add(m)
-        mobs.add(m)
+    def __init__(self):
+        '''
+        all_sprites = pygame.sprite.Group()
+        mobs = pygame.sprite.Group()
+        player_bullets = pygame.sprite.Group()
+        turret_bullets = pygame.sprite.Group()
+        turrets = pygame.sprite.Group()      
+        '''
+        self.score = 0
+        self.meteor_filename = "meteorBrown_big2.png"
+        self.meteor_img = pygame.image.load(path.join(img_dir, self.meteor_filename)).convert()
+
+        self.player = Player((WIDTH//2, HEIGHT))
+
+        self.turret_list = [ (20, 60 ,180),
+                        (420, 20,145),
+                        (240,100,135),                
+                       ]
+        self.num_turrets = len(self.turret_list)
+
+        for t in self.turret_list:
+            new_turret = Turret(t[0], t[1], t[2])
+            all_sprites.add( new_turret )
+            turrets.add(new_turret)
+        #all_sprites.add(t)
+        if WITH_ASTEROIDS:
+            for i in range(8):
+                m = Mob()
+                all_sprites.add(m)
+                mobs.add(m)
+
+        self.running = True
+        self.score = 0
+
+    def playGame(self):
+        # Game loop
+        print("len turrets", len(turrets))
+        
+        while self.running:
+            # keep loop running at the right speed
+            clock.tick(FPS)
+            # Process input (events)- Shooting and closing the game handled here
+            for event in pygame.event.get():
+                # check for closing window
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        self.player.shoot()
+                    if event.key == pygame.K_ESCAPE:
+                            self.running = False
+                if event.type == pygame.QUIT:
+                    self.running = False
+                self.player.get_event(event)
+
+            # Update
+            all_sprites.update()
+            self.player.update()
+            # True true means if a mobs collides, it's killed, it bullet collides it gets killed too
+            
+            hits = pygame.sprite.groupcollide(mobs, player_bullets, True, True)
+            for hit in hits:
+                score += 1
+                m = Mob()
+                all_sprites.add(m)
+                mobs.add(m)
+            
+            # Player bullets cancel out turret bullets 
+            pygame.sprite.groupcollide(player_bullets, turret_bullets, True, True)
+
+            # See if turret bullets hit a player 
+            hit_player = pygame.sprite.spritecollide(self.player, turret_bullets, True, pygame.sprite.collide_circle)
+            for ship_impact in hit_player:
+                self.player.shield -= 1
+                self.score -= 1
+            
+            #see if mobs(asteroids) hit a player 
+            hit_player = pygame.sprite.spritecollide(self.player, mobs, True, pygame.sprite.collide_circle)
+            for ship_impact in hit_player:
+                self.player.shield -= 1
+                self.score -= 1
+            
+            #see if turret bullets hit a player 
+            hits = pygame.sprite.groupcollide(player_bullets, turrets,True,True)
+            for ship_impact in hits:
+                self.score += 1
+                self.num_turrets -= 1
+
+            # Draw / render
+            screen.fill(BLACK)
+            #screen.blit(background,background_rect)
+            all_sprites.draw(screen)
+            self.player.draw(screen)
+
+            font = pygame.font.SysFont("Calibri", 25, True, False)
+            
+            if self.score > 0:
+                text = font.render('Score: {}'.format(self.score), True, GREEN)
+            else:
+                text = font.render('Score: {}'.format(self.score), True, RED)
+
+            text_player_shield = font.render('Shield: {}'.format(self.player.shield), True, GREEN)
+            TurretsLeft = font.render('Turrets left: {}'.format(self.num_turrets), True, GREEN)
+            
+            screen.blit(text, [10, 10] )
+            screen.blit(text_player_shield , [10, 38] )
+            screen.blit(TurretsLeft , [10, 66] )
+            # *after* drawing everything, flip the display
+            pygame.display.flip()
+            
+            pygame.event.pump()
+
+            if self.num_turrets == 0:
+                self.running = False
+
+        #pygame.quit()
+
+if __name__=='__main__':
     
-    # Player bullets cancel out turret bullets 
-    pygame.sprite.groupcollide(player_bullets, turret_bullets, True, True)
-
-    # See if turret bullets hit a player 
-    hit_player = pygame.sprite.spritecollide(player, turret_bullets, True, pygame.sprite.collide_circle)
-    for ship_impact in hit_player:
-        player.shield -= 1
-        score -= 1
+    all_sprites = pygame.sprite.Group()
+    mobs = pygame.sprite.Group()
+    player_bullets = pygame.sprite.Group()
+    turret_bullets = pygame.sprite.Group()
+    turrets = pygame.sprite.Group()      
     
-    #see if mobs(asteroids) hit a player 
-    hit_player = pygame.sprite.spritecollide(player, mobs, True, pygame.sprite.collide_circle)
-    for ship_impact in hit_player:
-        player.shield -= 1
-        score -= 1
-
-    #see if turret bullets hit a player 
-    hits = pygame.sprite.groupcollide(player_bullets, turrets,True,True)
-    for ship_impact in hits:
-        score += 50
-
-    # Draw / render
-    screen.fill(BLACK)
-    #screen.blit(background,background_rect)
-    all_sprites.draw(screen)
-    player.draw(screen)
-
-    font = pygame.font.SysFont("Calibri", 25, True, False)
-    
-    if score > 0:
-        text = font.render('Score: {}'.format(score), True, GREEN)
-    else:
-        text = font.render('Score: {}'.format(score), True, RED)
-
-    text_player_shield = font.render('Shield: {}'.format(player.shield), True, GREEN)
-    
-    screen.blit(text, [10, 10] )
-    screen.blit(text_player_shield , [10, 38] )
-    # *after* drawing everything, flip the display
-    pygame.display.flip()
-
-pygame.quit()
+    th = TurretHunterGame()
+    th.playGame()
+    if not th.running:
+        all_sprites = pygame.sprite.Group()
+        mobs = pygame.sprite.Group()
+        player_bullets = pygame.sprite.Group()
+        turret_bullets = pygame.sprite.Group()
+        turrets = pygame.sprite.Group()      
+        
+        th.__init__()
+        th.playGame()
+    print("Reset the game and then replayed it")

@@ -25,6 +25,7 @@ A pygame-driven 2D game where a DQN model control a spaceship in varying environ
 - [ ] Put walls in the game for non-player ships to hide
 - [ ] Randomize wall creation on successive maps
 - [ ] Put a setting for autonomous or player controlled
+- [ ] Implement a reset mechanism 
 - [x] Make the ship controllable by arrow keys
 - [x] Try the Pong DQN and see if it learns spaceship commands
 - [x] Write a README.md
