@@ -2,6 +2,7 @@
 import pygame
 import random
 import math
+from collections import deque
 
 import cv2
 from os import path
@@ -17,17 +18,16 @@ img_dir = path.join(path.dirname(__file__), 'img')
 
 '''
 Action set:
-
 0-up
 1-down
 2-left
 3-right
 4-fire
-5-move backwards
 '''
 
-ACTION_SET_LEN = 6
+NUM_ACTIONS = 5
 
+#Resizing for model training
 IMGHEIGHT = 50
 IMGWIDTH = 50
 IMGHISTORY = 4
@@ -37,7 +37,6 @@ HEIGHT = 600
 FPS    = 60
 
 WITH_ASTEROIDS = False
-
 IS_AUTONOMOUS = False
 
 # define colors
@@ -112,7 +111,33 @@ class Player(pygame.sprite.Sprite):
         """ Our spaceship event handler !! """
 
         if IS_AUTONOMOUS:
-            pass
+            
+            self.speedx = 0
+            self.speedy = 0
+
+            self.velocity = 0
+            self.move_angle = math.radians(self.angle - 90)
+            
+            if   action == 0:
+                #up
+                self.velocity = 4
+                self.speedx = round(-1 * self.velocity * math.cos(self.move_angle)  )
+                self.speedy = round(     self.velocity * math.sin(self.move_angle)  )
+            elif action == 1:
+                #down
+                self.velocity = 4
+                self.speedx = -1 * round(-1 * self.velocity * math.cos(self.move_angle)  )
+                self.speedy = -1 * round(     self.velocity * math.sin(self.move_angle)  )       
+            elif action == 2 or action == 3:
+                #left or right rotation
+                self.spin = 0
+                for key in SPIN_DICT:
+                    if keystate[key]:
+                        self.spin += SPIN_DICT[key]
+                self.rotate()
+            elif action == 4:
+                #fire
+                self.shoot()
         else:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
@@ -157,7 +182,8 @@ class Player(pygame.sprite.Sprite):
                 self.rect.top = HEIGHT - HEIGHT
             elif self.rect.bottom > HEIGHT:
                 self.rect.bottom = HEIGHT
-            
+        else:
+            pass
 
     def draw(self, surface):
         """Draw base and barrel to the target surface."""
@@ -307,7 +333,6 @@ class TurretHunterGame:
 
     def playGame(self):
         # Game loop
-        print("len turrets", len(turrets))
         worthlessvariable = 0
         #will be overwridden by model.predict when autonomy works
         action = None
@@ -372,7 +397,7 @@ class TurretHunterGame:
                     text = font.render('Score: {}'.format(self.score), True, GREEN)
                 else:
                     text = font.render('Score: {}'.format(self.score), True, RED)
-
+                
                 text_player_shield = font.render('Shield: {}'.format(self.player.shield), True, GREEN)
                 TurretsLeft = font.render('Turrets left: {}'.format(self.num_turrets), True, GREEN)
                 
@@ -412,33 +437,37 @@ class Agent:
         model.add(Flatten())
         model.add(Dense(256))
         model.add(Activation('relu'))
-        model.add(Dense(units=ACTION_SET_LEN, activation='linear'))
-
+        model.add(Dense(units=NUM_ACTIONS, activation='linear'))
         model.compile(loss='mse', optimizer='rmsprop')
+        print("Done Creating Model")
         return model
-ag = Agent()
-#if __name__=='__main__':
-def getTest():
-    all_sprites = pygame.sprite.Group()
-    mobs = pygame.sprite.Group()
-    player_bullets = pygame.sprite.Group()
-    turret_bullets = pygame.sprite.Group()
-    turrets = pygame.sprite.Group()      
-    
-    th = TurretHunterGame()
-    th.playGame()
-    #print("th score", th.score)
-    numgame = 1
 
-    if not th.running:
-        all_sprites = pygame.sprite.Group()
-        mobs = pygame.sprite.Group()
-        player_bullets = pygame.sprite.Group()
-        turret_bullets = pygame.sprite.Group()
-        turrets = pygame.sprite.Group()      
-        
-        th.__init__()
-        th.playGame()
-        #print("th score", th.score)
-    #print("Reset the game and then replayed it", numgame)
+    def getActuationCommand(observation):
+        q_value = self.model.predict(observation)
+        return np.argmax(q_value)
+
+all_sprites = pygame.sprite.Group()
+mobs = pygame.sprite.Group()
+player_bullets = pygame.sprite.Group()
+turret_bullets = pygame.sprite.Group()
+turrets = pygame.sprite.Group()
+#if __name__=='__main__':
+th = TurretHunterGame()
+
+def getTest():          
+    th.__init__()
+    th.playGame() 
+
+    all_sprites.empty()
+    mobs.empty()
+    player_bullets.empty()
+    turret_bullets.empty()
+    turrets.empty()
+
+
+print("we'll play the game once")
+getTest()
+print("we'll play the game Again")
+getTest()
+print("And again")
 getTest()
