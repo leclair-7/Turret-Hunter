@@ -3,6 +3,7 @@ import pygame
 import random
 import math
 
+import cv2
 from os import path
 img_dir = path.join(path.dirname(__file__), 'img')
 WIDTH  = 480
@@ -10,6 +11,8 @@ HEIGHT = 600
 FPS    = 60
 
 WITH_ASTEROIDS = False
+
+IS_AUTONOMOUS = False
 
 # define colors
 WHITE  = (255, 255, 255)
@@ -29,6 +32,13 @@ clock = pygame.time.Clock()
 
 SPIN_DICT = {pygame.K_LEFT  :  1,
              pygame.K_RIGHT : -1}
+
+all_sprites = pygame.sprite.Group()
+mobs = pygame.sprite.Group()
+player_bullets = pygame.sprite.Group()
+turret_bullets = pygame.sprite.Group()
+turrets = pygame.sprite.Group()      
+
 
 class Player(pygame.sprite.Sprite):
 
@@ -72,51 +82,57 @@ class Player(pygame.sprite.Sprite):
             self.barrel = pygame.transform.rotate(self.original_barrel, self.angle)
             self.rect = self.barrel.get_rect(center=self.rect.center)
 
-    def get_event(self, event):
+    def get_event(self, event, action):
         """ Our spaceship event handler !! """
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE:
-                self.shoot()
-                #objects.add(Laser(self.rect.center, self.angle))
+
+        if IS_AUTONOMOUS:
+            pass
+        else:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    self.shoot()
+                    #objects.add(Laser(self.rect.center, self.angle))
 
     def update(self):
 
-        keystate = pygame.key.get_pressed()
+        if not IS_AUTONOMOUS:
+            
+            keystate = pygame.key.get_pressed()
+            self.spin = 0
+            for key in SPIN_DICT:
+                if keystate[key]:
+                    self.spin += SPIN_DICT[key]
+            self.rotate()
 
-        self.spin = 0
-        for key in SPIN_DICT:
-            if keystate[key]:
-                self.spin += SPIN_DICT[key]
-        self.rotate()
+            self.speedx = 0
+            self.speedy = 0
 
-        self.speedx = 0
-        self.speedy = 0
+            self.velocity = 0
+            self.move_angle = math.radians(self.angle - 90)
+            
+            if keystate[pygame.K_UP]:
+                self.velocity = 4
+                self.speedx = round(-1 * self.velocity * math.cos(self.move_angle)  )
+                self.speedy = round(     self.velocity * math.sin(self.move_angle)  )
+            elif keystate[pygame.K_DOWN]:
+                self.velocity = 4
+                self.speedx = -1 * round(-1 * self.velocity * math.cos(self.move_angle)  )
+                self.speedy = -1 * round(     self.velocity * math.sin(self.move_angle)  )       
 
-        self.velocity = 0
-        self.move_angle = math.radians(self.angle - 90)
-        
-        if keystate[pygame.K_UP]:
-            self.velocity = 4
-            self.speedx = round(-1 * self.velocity * math.cos(self.move_angle)  )
-            self.speedy = round(     self.velocity * math.sin(self.move_angle)  )
-        elif keystate[pygame.K_DOWN]:
-            self.velocity = 4
-            self.speedx = -1 * round(-1 * self.velocity * math.cos(self.move_angle)  )
-            self.speedy = -1 * round(     self.velocity * math.sin(self.move_angle)  )       
+            self.rect.x += self.speedx
+            self.rect.y += self.speedy
 
-        self.rect.x += self.speedx
-        self.rect.y += self.speedy
+            if self.rect.right > WIDTH:
+                self.rect.right = WIDTH
+            elif self.rect.left < 0:
+                self.rect.left = 0
 
-        if self.rect.right > WIDTH:
-            self.rect.right = WIDTH
-        elif self.rect.left < 0:
-            self.rect.left = 0
+            if self.rect.top < HEIGHT - HEIGHT:
+                self.rect.top = HEIGHT - HEIGHT
+            elif self.rect.bottom > HEIGHT:
+                self.rect.bottom = HEIGHT
+            
 
-        if self.rect.top < HEIGHT - HEIGHT:
-            self.rect.top = HEIGHT - HEIGHT
-        elif self.rect.bottom > HEIGHT:
-            self.rect.bottom = HEIGHT
-        
     def draw(self, surface):
         """Draw base and barrel to the target surface."""
         surface.blit(self.barrel, self.rect)
@@ -140,7 +156,6 @@ class Turret(pygame.sprite.Sprite):
         self.radius = int(self.rect.width )
         # circle for collision detect debug line
         #pygame.draw.circle(self.image, RED, self.rect.center, self.radius)
-        
 
         self.health = 5
         self.angle = angle
@@ -267,7 +282,9 @@ class TurretHunterGame:
     def playGame(self):
         # Game loop
         print("len turrets", len(turrets))
-        
+        worthlessvariable = 0
+        #will be overwridden by model.predict when autonomy works
+        action = None
         while self.running:
             # keep loop running at the right speed
             clock.tick(FPS)
@@ -281,7 +298,7 @@ class TurretHunterGame:
                             self.running = False
                 if event.type == pygame.QUIT:
                     self.running = False
-                self.player.get_event(event)
+                self.player.get_event(event, action)
 
             # Update
             all_sprites.update()
@@ -336,6 +353,13 @@ class TurretHunterGame:
             screen.blit(text_player_shield , [10, 38] )
             screen.blit(TurretsLeft , [10, 66] )
             # *after* drawing everything, flip the display
+
+            DIDWESAVEATESTIMAGE = False
+            worthlessvariable += 1
+            if worthlessvariable == 15:
+                ScreenImage = pygame.surfarray.array3d(pygame.display.get_surface())
+                cv2.imwrite("sample_screen.png", ScreenImage)
+
             pygame.display.flip()
             
             pygame.event.pump()
@@ -345,8 +369,8 @@ class TurretHunterGame:
 
         #pygame.quit()
 
-if __name__=='__main__':
-    
+#if __name__=='__main__':
+def getTest():
     all_sprites = pygame.sprite.Group()
     mobs = pygame.sprite.Group()
     player_bullets = pygame.sprite.Group()
@@ -355,6 +379,9 @@ if __name__=='__main__':
     
     th = TurretHunterGame()
     th.playGame()
+    print("th score", th.score)
+    numgame = 1
+
     if not th.running:
         all_sprites = pygame.sprite.Group()
         mobs = pygame.sprite.Group()
@@ -364,4 +391,6 @@ if __name__=='__main__':
         
         th.__init__()
         th.playGame()
-    print("Reset the game and then replayed it")
+        print("th score", th.score)
+    print("Reset the game and then replayed it", numgame)
+getTest()
