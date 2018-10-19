@@ -5,7 +5,33 @@ import math
 
 import cv2
 from os import path
+
+from keras.models import Sequential
+from keras.layers import *
+from keras.layers.core import Dense, Dropout, Activation, Flatten
+from keras.layers.convolutional import Convolution2D, MaxPooling2D
+from keras.optimizers import *
+
+
 img_dir = path.join(path.dirname(__file__), 'img')
+
+'''
+Action set:
+
+0-up
+1-down
+2-left
+3-right
+4-fire
+5-move backwards
+'''
+
+ACTION_SET_LEN = 6
+
+IMGHEIGHT = 50
+IMGWIDTH = 50
+IMGHISTORY = 4
+
 WIDTH  = 480
 HEIGHT = 600
 FPS    = 60
@@ -339,26 +365,27 @@ class TurretHunterGame:
             all_sprites.draw(screen)
             self.player.draw(screen)
 
-            font = pygame.font.SysFont("Calibri", 25, True, False)
-            
-            if self.score > 0:
-                text = font.render('Score: {}'.format(self.score), True, GREEN)
-            else:
-                text = font.render('Score: {}'.format(self.score), True, RED)
+            if not IS_AUTONOMOUS:
+                font = pygame.font.SysFont("Calibri", 25, True, False)
+                
+                if self.score > 0:
+                    text = font.render('Score: {}'.format(self.score), True, GREEN)
+                else:
+                    text = font.render('Score: {}'.format(self.score), True, RED)
 
-            text_player_shield = font.render('Shield: {}'.format(self.player.shield), True, GREEN)
-            TurretsLeft = font.render('Turrets left: {}'.format(self.num_turrets), True, GREEN)
-            
-            screen.blit(text, [10, 10] )
-            screen.blit(text_player_shield , [10, 38] )
-            screen.blit(TurretsLeft , [10, 66] )
+                text_player_shield = font.render('Shield: {}'.format(self.player.shield), True, GREEN)
+                TurretsLeft = font.render('Turrets left: {}'.format(self.num_turrets), True, GREEN)
+                
+                screen.blit(text, [10, 10] )
+                screen.blit(text_player_shield , [10, 38] )
+                screen.blit(TurretsLeft , [10, 66] )
             # *after* drawing everything, flip the display
 
-            DIDWESAVEATESTIMAGE = False
-            worthlessvariable += 1
-            if worthlessvariable == 15:
-                ScreenImage = pygame.surfarray.array3d(pygame.display.get_surface())
-                cv2.imwrite("sample_screen.png", ScreenImage)
+            #DIDWESAVEATESTIMAGE = False
+            #worthlessvariable += 1
+            #if worthlessvariable == 80:
+            #    ScreenImage = pygame.surfarray.array3d(pygame.display.get_surface())
+            #    cv2.imwrite("sample_screen.png", ScreenImage)
 
             pygame.display.flip()
             
@@ -368,7 +395,28 @@ class TurretHunterGame:
                 self.running = False
 
         #pygame.quit()
+class Agent:
+    def __init__(self):
 
+        self.domination = True
+        self.model = self.createModel()
+
+    def createModel(self):
+        print("Creating Convolutional Keras Model")
+        
+        model = Sequential()
+        model.add(Conv2D(16, kernel_size=8, strides=(4, 4),input_shape=(IMGHEIGHT,IMGWIDTH ,IMGHISTORY),padding='same'))
+        model.add(Activation('relu'))
+        model.add(Conv2D(32, kernel_size=4, strides=(2, 2),padding='same'))
+        model.add(Activation('relu'))
+        model.add(Flatten())
+        model.add(Dense(256))
+        model.add(Activation('relu'))
+        model.add(Dense(units=ACTION_SET_LEN, activation='linear'))
+
+        model.compile(loss='mse', optimizer='rmsprop')
+        return model
+ag = Agent()
 #if __name__=='__main__':
 def getTest():
     all_sprites = pygame.sprite.Group()
@@ -379,7 +427,7 @@ def getTest():
     
     th = TurretHunterGame()
     th.playGame()
-    print("th score", th.score)
+    #print("th score", th.score)
     numgame = 1
 
     if not th.running:
@@ -391,6 +439,6 @@ def getTest():
         
         th.__init__()
         th.playGame()
-        print("th score", th.score)
-    print("Reset the game and then replayed it", numgame)
+        #print("th score", th.score)
+    #print("Reset the game and then replayed it", numgame)
 getTest()
