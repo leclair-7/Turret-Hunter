@@ -2,6 +2,7 @@
 import pygame
 import random
 import math
+import time
 from collections import deque
 
 import cv2
@@ -37,7 +38,7 @@ HEIGHT = 600
 FPS    = 60
 
 WITH_ASTEROIDS = False
-IS_AUTONOMOUS = False
+IS_AUTONOMOUS = True
 
 # define colors
 WHITE  = (255, 255, 255)
@@ -131,9 +132,10 @@ class Player(pygame.sprite.Sprite):
             elif action == 2 or action == 3:
                 #left or right rotation
                 self.spin = 0
-                for key in SPIN_DICT:
-                    if keystate[key]:
-                        self.spin += SPIN_DICT[key]
+                if action == 2:
+                    self.spin += 1
+                elif action == 3:
+                    self.spin -= 1
                 self.rotate()
             elif action == 4:
                 #fire
@@ -321,7 +323,7 @@ class TurretHunterGame:
             new_turret = Turret(t[0], t[1], t[2])
             all_sprites.add( new_turret )
             turrets.add(new_turret)
-        #all_sprites.add(t)
+        
         if WITH_ASTEROIDS:
             for i in range(8):
                 m = Mob()
@@ -329,28 +331,51 @@ class TurretHunterGame:
                 mobs.add(m)
 
         self.running = True
-        self.score = 0
 
     def playGame(self):
+        start = time.time()
         # Game loop
-        worthlessvariable = 0
-        #will be overwridden by model.predict when autonomy works
+        
         action = None
+
+        autonomous_commands = [4 for i in range(25)]
+        for i in range(8):
+            autonomous_commands.append(3)
+        for i in range(45):
+            autonomous_commands.append(4)
+        for i in range(16):
+            autonomous_commands.append(2)
+        for i in range(45):
+            autonomous_commands.append(4)
+        
+        frameno = 0
+        post_command_set_count = 0
         while self.running:
+            frameno += 1
             # keep loop running at the right speed
             clock.tick(FPS)
             # Process input (events)- Shooting and closing the game handled here
-            for event in pygame.event.get():
-                # check for closing window
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_SPACE:
-                        self.player.shoot()
-                    if event.key == pygame.K_ESCAPE:
-                            self.running = False
-                if event.type == pygame.QUIT:
-                    self.running = False
-                self.player.get_event(event, action)
-
+            event = None
+            #print(self.score)
+            now = time.time()
+            if not IS_AUTONOMOUS:
+                for event in pygame.event.get():
+                    # check for closing window
+                    if event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_SPACE:
+                            self.player.shoot()
+                        if event.key == pygame.K_ESCAPE:
+                                self.running = False
+                    if event.type == pygame.QUIT:
+                        self.running = False
+                    self.player.get_event(event, action)
+            else:
+                if frameno < len(autonomous_commands):
+                    self.player.get_event(event, autonomous_commands[frameno])
+                else:
+                    post_command_set_count += 1
+                    if post_command_set_count == 200: 
+                        return [self.score, (now - start) ]
             # Update
             all_sprites.update()
             self.player.update()
@@ -358,7 +383,7 @@ class TurretHunterGame:
             
             hits = pygame.sprite.groupcollide(mobs, player_bullets, True, True)
             for hit in hits:
-                score += 1
+                self.score += 1
                 m = Mob()
                 all_sprites.add(m)
                 mobs.add(m)
@@ -402,23 +427,22 @@ class TurretHunterGame:
                 TurretsLeft = font.render('Turrets left: {}'.format(self.num_turrets), True, GREEN)
                 
                 screen.blit(text, [10, 10] )
-                screen.blit(text_player_shield , [10, 38] )
-                screen.blit(TurretsLeft , [10, 66] )
+                screen.blit(text_player_shield, [10, 38] )
+                screen.blit(TurretsLeft, [10, 66] )
             # *after* drawing everything, flip the display
 
-            #DIDWESAVEATESTIMAGE = False
-            #worthlessvariable += 1
-            #if worthlessvariable == 80:
-            #    ScreenImage = pygame.surfarray.array3d(pygame.display.get_surface())
-            #    cv2.imwrite("sample_screen.png", ScreenImage)
-
-            pygame.display.flip()
-            
+            pygame.display.flip()            
             pygame.event.pump()
 
-            if self.num_turrets == 0:
+            if not IS_AUTONOMOUS and self.num_turrets == 0:
                 self.running = False
-
+            elif IS_AUTONOMOUS and self.num_turrets == 0:
+                now = time.time() 
+                
+                return [ self.score, round((now - start),4) ]
+        now = time.time()
+                        
+        return [ self.score, (now - start) ]
         #pygame.quit()
 class Agent:
     def __init__(self):
@@ -430,9 +454,9 @@ class Agent:
         print("Creating Convolutional Keras Model")
         
         model = Sequential()
-        model.add(Conv2D(16, kernel_size=8, strides=(4, 4),input_shape=(IMGHEIGHT,IMGWIDTH ,IMGHISTORY),padding='same'))
+        model.add(Conv2D(16, kernel_size=8, strides=(4, 4), input_shape=(IMGHEIGHT, IMGWIDTH, IMGHISTORY), padding='same'))
         model.add(Activation('relu'))
-        model.add(Conv2D(32, kernel_size=4, strides=(2, 2),padding='same'))
+        model.add(Conv2D(32, kernel_size=4, strides=(2, 2), padding='same'))
         model.add(Activation('relu'))
         model.add(Flatten())
         model.add(Dense(256))
@@ -456,7 +480,7 @@ th = TurretHunterGame()
 
 def getTest():          
     th.__init__()
-    th.playGame() 
+    score_and_time = th.playGame() 
 
     all_sprites.empty()
     mobs.empty()
@@ -464,10 +488,18 @@ def getTest():
     turret_bullets.empty()
     turrets.empty()
 
+    return score_and_time
 
 print("we'll play the game once")
-getTest()
+asdf = getTest()
+print(  "asdf", asdf )
 print("we'll play the game Again")
-getTest()
-print("And again")
-getTest()
+print( getTest() )
+#print("And again")
+#getTest()
+
+times_game = []
+for i in range(15):
+    game_results = getTest()
+    times_game.append(game_results[1])
+print(times_game)
