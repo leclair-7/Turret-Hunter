@@ -6,6 +6,9 @@ import time
 from collections import deque
 
 import cv2
+import skimage
+from skimage import color
+
 from os import path
 
 from keras.models import Sequential
@@ -13,7 +16,6 @@ from keras.layers import *
 from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
 from keras.optimizers import *
-
 
 img_dir = path.join(path.dirname(__file__), 'img')
 
@@ -33,12 +35,15 @@ IMGHEIGHT = 50
 IMGWIDTH = 50
 IMGHISTORY = 4
 
+MINIBATCH = 32
+
 WIDTH  = 480
 HEIGHT = 600
 FPS    = 60
 
 WITH_ASTEROIDS = False
 IS_AUTONOMOUS = True
+
 
 # define colors
 WHITE  = (255, 255, 255)
@@ -155,6 +160,7 @@ class Player(pygame.sprite.Sprite):
             for key in SPIN_DICT:
                 if keystate[key]:
                     self.spin += SPIN_DICT[key]
+            #print("angle:", self.angle, "self.spin", self.spin)
             self.rotate()
 
             self.speedx = 0
@@ -300,13 +306,9 @@ class Mob(pygame.sprite.Sprite):
 class TurretHunterGame:
     
     def __init__(self):
-        '''
-        all_sprites = pygame.sprite.Group()
-        mobs = pygame.sprite.Group()
-        player_bullets = pygame.sprite.Group()
-        turret_bullets = pygame.sprite.Group()
-        turrets = pygame.sprite.Group()      
-        '''
+        
+        self.agent = Agent()
+
         self.score = 0
         self.meteor_filename = "meteorBrown_big2.png"
         self.meteor_img = pygame.image.load(path.join(img_dir, self.meteor_filename)).convert()
@@ -374,8 +376,9 @@ class TurretHunterGame:
                     self.player.get_event(event, autonomous_commands[frameno])
                 else:
                     post_command_set_count += 1
-                    if post_command_set_count == 200: 
-                        return [self.score, (now - start) ]
+                    if post_command_set_count == 200:
+
+                        return [self.score, (now - start), frameno ]
             # Update
             all_sprites.update()
             self.player.update()
@@ -406,6 +409,7 @@ class TurretHunterGame:
             #see if turret bullets hit a player 
             hits = pygame.sprite.groupcollide(player_bullets, turrets,True,True)
             for ship_impact in hits:
+                print("hit a turret", self.num_turrets -1)
                 self.score += 1
                 self.num_turrets -= 1
 
@@ -438,8 +442,21 @@ class TurretHunterGame:
                 self.running = False
             elif IS_AUTONOMOUS and self.num_turrets == 0:
                 now = time.time() 
+                print("this one")
+                observ = pygame.surfarray.array3d(pygame.display.get_surface())
+                print("game board before image transform", observ.shape)
+                observ2 = self.agent.ProcessGameImage(observ)
+                print("game board after  image transform", observ2.shape)
                 
-                return [ self.score, round((now - start),4) ]
+                timelist = []
+                for i in range(1000):
+                    start_time = time.time()
+                    prediction_1 = self.agent.getActuationCommand(observ2)
+                    finish_time = time.time()
+                    timelist.append( (finish_time - start_time) )
+                print("This is the NN prediction time:", timelist)
+                print("Average inference time", sum(timelist) / len(timelist))
+                return [ self.score, round((now - start),4), frameno ]
         now = time.time()
                         
         return [ self.score, (now - start) ]
@@ -450,23 +467,38 @@ class Agent:
         self.domination = True
         self.model = self.createModel()
 
+    def ProcessGameImage(self, RawImage):
+        base = np.copy(RawImage)
+        img = color.rgb2gray(base)
+        #ReducedImage = cv2.cvtColor(base, COLOR_RGB2GREY)
+        InitialGameImage = cv2.resize(img, (50, 50),interpolation=cv2.INTER_AREA )
+               
+        #Initial gamestate for 
+        GameState = np.stack((InitialGameImage, InitialGameImage, InitialGameImage, InitialGameImage), axis=2)
+        # Keras expects shape 1x40x40x4
+        GameState = GameState.reshape(1, GameState.shape[0], GameState.shape[1], GameState.shape[2])
+        return GameState
+
     def createModel(self):
         print("Creating Convolutional Keras Model")
-        
         model = Sequential()
-        model.add(Conv2D(16, kernel_size=8, strides=(4, 4), input_shape=(IMGHEIGHT, IMGWIDTH, IMGHISTORY), padding='same'))
+        model.add(Conv2D(32, kernel_size=8, strides=(4, 4), input_shape=(IMGHEIGHT, IMGWIDTH,4), padding='same'))
         model.add(Activation('relu'))
-        model.add(Conv2D(32, kernel_size=4, strides=(2, 2), padding='same'))
+        model.add(Conv2D(64, kernel_size=4, strides=(2, 2), padding='same'))
+        model.add(Activation('relu'))
+        model.add(Conv2D(64, kernel_size=3, strides=(1, 1), padding='same'))
         model.add(Activation('relu'))
         model.add(Flatten())
-        model.add(Dense(256))
+        model.add(Dense(512))
         model.add(Activation('relu'))
         model.add(Dense(units=NUM_ACTIONS, activation='linear'))
         model.compile(loss='mse', optimizer='rmsprop')
         print("Done Creating Model")
         return model
 
-    def getActuationCommand(observation):
+    def getActuationCommand(self, observation):
+        #observation = np.array(self.ProcessGameImage(observation) )
+        #print("observation.shape", observation.shape)
         q_value = self.model.predict(observation)
         return np.argmax(q_value)
 
@@ -490,16 +522,9 @@ def getTest():
 
     return score_and_time
 
-print("we'll play the game once")
-asdf = getTest()
-print(  "asdf", asdf )
-print("we'll play the game Again")
-print( getTest() )
-#print("And again")
-#getTest()
-
-times_game = []
-for i in range(15):
-    game_results = getTest()
-    times_game.append(game_results[1])
-print(times_game)
+#A testing line
+num_play_games = 1
+for i in range(num_play_games):
+    print("Playing the game for the", i, "th time.")
+    asdf = getTest()
+    print(asdf)
