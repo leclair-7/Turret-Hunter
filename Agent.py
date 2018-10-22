@@ -7,7 +7,6 @@ https://deepmind.com/research/publications/human-level-control-through-deep-rein
 
 '''
 
-
 from keras.models import Sequential
 from keras.layers import *
 from keras.layers.core import Dense, Dropout, Activation, Flatten
@@ -18,6 +17,7 @@ import cv2
 import skimage
 from skimage import color
 
+import random
 import numpy as np
 from collections import deque
 
@@ -53,17 +53,22 @@ class Agent:
 
         self.frame_idx = 0
 
+    def LoadTrainedModel(self):
+        self.model.load_weights("TurretHunterModelWeights10000.h5")
+        self.model.compile(loss='mse',optimizer='rmsprop')
+        self.epsilon = 0.0
+        
     def ProcessGameImage(self, RawImage):
         base = np.copy(RawImage)
         img = color.rgb2gray(base)
         #ReducedImage = cv2.cvtColor(base, COLOR_RGB2GREY)
-        InitialGameImage = cv2.resize(img, (50, 50),interpolation=cv2.INTER_AREA )
+        GameImage = cv2.resize(img, (50, 50),interpolation=cv2.INTER_AREA )
                
         #Initial gamestate for 
-        GameState = np.stack((InitialGameImage, InitialGameImage, InitialGameImage, InitialGameImage), axis=2)
+        #GameState = np.stack((InitialGameImage, InitialGameImage, InitialGameImage, InitialGameImage), axis=2)
         # Keras expects shape 1x40x40x4
-        GameState = GameState.reshape(1, GameState.shape[0], GameState.shape[1], GameState.shape[2])
-        return GameState
+        #GameState = GameState.reshape(1, GameState.shape[0], GameState.shape[1], GameState.shape[2])
+        return GameImage
 
     def createModel(self, NUM_ACTIONS):
         print("Creating Model")
@@ -99,11 +104,12 @@ class Agent:
         pass
     def FindBestActionTrain(self,state):
             
-        if np.random.random() < epsilon:
+        if np.random.random() < self.epsilon:
             # pick a random action
-            action = env.action_space.sample()
+            action = random.randint(0,NUM_ACTIONS - 1)
         else:
-            action = np.argmax(model.predict())
+            action = np.argmax(self.model.predict(state))
+        return action
     
     def FindBestActionTest(self, state):
         q_val = self.model.predict(state)
@@ -128,14 +134,14 @@ class Agent:
         #do a training run only if we've sampled enough steps from the game
         if self.steps > OBSERVEPERIOD:
             #sample BATCH_SIZE experiences
-            minibatch = random.sample(self.ExpReplay,BATCH_SIZE)
+            minibatch = random.sample(self.ExperienceReplay,BATCH_SIZE)
 
             inputs = np.zeros((BATCH_SIZE, IMGHEIGHT,IMGWIDTH ,IMGHISTORY))   #BatchSize, 40, 40, 4
-            targets = np.zeros((inputs.shape[0], NBRACTIONS)) 
+            targets = np.zeros((inputs.shape[0], NUM_ACTIONS)) 
         
             Q_sa =0
 
-            for i in range(BATCH_SIZE):
+            for i in (BATCH_SIZE):
                 state_t  = minibatch[i][0]
                 action_t = minibatch[i][1]   #This is action index
                 reward_t = minibatch[i][2]
@@ -157,6 +163,6 @@ class Agent:
                     targets[i, action_t] = reward_t + GAMMA * np.max(Q_sa)
             self.model.fit(inputs, targets, batch_size=BATCH_SIZE, epochs=1, verbose=0)
     
-    def SaveBestWeights(self):
+    def SaveBestWeights(self, number):
         print("Saving Best Model")
-        self.model.save_weights("BestPongModelWeights.h5",overwrite=True)
+        self.model.save_weights("./ModelWeights/TurretHunterModelWeights" + str(number) +".h5",overwrite=True)

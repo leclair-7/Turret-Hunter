@@ -15,7 +15,7 @@ from Agent import Agent
 from GameCharacters import *
 
 WITH_ASTEROIDS = False
-IS_AUTONOMOUS = False
+IS_AUTONOMOUS = True
 
 FPS    = 60
 
@@ -100,7 +100,7 @@ class TurretHunterGame:
         #see if turret bullets hit a player 
         hits = pygame.sprite.groupcollide(player_bullets, turrets,True,True)
         for ship_impact in hits:
-            print("hit a turret", self.num_turrets -1)
+            #print("hit a turret", self.num_turrets -1)
             self.score += 1
             self.num_turrets -= 1
 
@@ -124,6 +124,32 @@ class TurretHunterGame:
 
     #  Game Update Inlcuding Display
     def PlayNextMove(self, action):
+        # Calculate DeltaFrameTime
+        DeltaFrameTime = self.clock.tick(FPS)
+
+        self.screen.fill(BLACK)
+
+        #action is in range(5)
+        self.player.get_event(None, action)
+
+        # Update Sprites
+        all_sprites.update()
+        self.player.update()
+
+        #all_sprites.draw(self.screen)
+        #self.player.draw(self.screen)
+
+        self.CollisionDetectionCalculations()
+
+        if self.num_turrets == 0:
+            self.EmptySpriteGroups()
+            self.__init__()
+            self.numGamesPlayed += 1
+        #print("self.score:", self.score )
+        ScreenImage = pygame.surfarray.array3d(pygame.display.get_surface())
+        #pygame.display.flip()
+        return [self.score, ScreenImage]
+    def PlayNextMoveTest(self, action):
         # Calculate DeltaFrameTime
         DeltaFrameTime = self.clock.tick(FPS)
 
@@ -253,7 +279,6 @@ class TurretHunterGame:
                         
         return [ self.score, (now - start) ]
 
-#if __name__=='__main__':
 def getTest():          
     th.__init__()
     score_and_time = th.playGame()
@@ -265,43 +290,45 @@ def getTest():
     return score_and_time
 
 
-th = TurretHunterGame()
-th.PlayGame()
+if __name__=='__main__':
 
-'''
-th.InitialDisplay()
+    th = TurretHunterGame()
+    th.PlayGame()
 
-autonomous_commands = [4 for i in range(25)]
-for i in range(8):
-    autonomous_commands.append(3)
-for i in range(45):
-    autonomous_commands.append(4)
-for i in range(16):
-    autonomous_commands.append(2)
-for i in range(45):
-    autonomous_commands.append(4)
+    '''
+    th.InitialDisplay()
 
-for i in autonomous_commands:
-    #action = int(input())
-    th.PlayNextMove(i)
-for i in range(50):
-    #action = int(input())
-    th.PlayNextMove(2)
+    autonomous_commands = [4 for i in range(25)]
+    for i in range(8):
+        autonomous_commands.append(3)
+    for i in range(45):
+        autonomous_commands.append(4)
+    for i in range(16):
+        autonomous_commands.append(2)
+    for i in range(45):
+        autonomous_commands.append(4)
 
-a = int(input())
-print("finished the game")
-'''
+    for i in autonomous_commands:
+        #action = int(input())
+        th.PlayNextMove(i)
+    for i in range(50):
+        #action = int(input())
+        th.PlayNextMove(2)
 
-pygame.quit()
-'''
+    a = int(input())
+    print("finished the game")
+    '''
+
+    pygame.quit()
+    '''
 
 
 
-#A testing line
-num_play_games = 1
-for i in range(num_play_games):
-    print("Playing the game for the", i, "th time.")
-    asdf = getTest()
-    print(asdf)
+    #A testing line
+    num_play_games = 1
+    for i in range(num_play_games):
+        print("Playing the game for the", i, "th time.")
+        asdf = getTest()
+        print(asdf)
 
-'''
+    '''

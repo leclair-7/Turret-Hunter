@@ -25,10 +25,15 @@ Update: did a "pip freeze > requirements.txt" on 10/22/18 using the virtualenv u
 
 
 ## Basic Build Instructions
+(** TO DO ** )
 1. Open up a bash terminal
-2. python TurretHunter.py
+2. python -m venv TurretHunterEnv
+3. pip install -r requirements.txt
+4. source ./TurretHunterEnv/bin/activate
+5. python TurretHunter.py
 
 #### To Do (in no particular order)
+- [ ] Edit Build Instructions in this README.md
 - [ ] Make a minimal ML example to see if the game environment/simulator is sufficient
 - [ ] Put walls in the game for non-player ships to hide
 - [ ] Randomize wall creation on successive maps
