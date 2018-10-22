@@ -13,12 +13,20 @@ A pygame-driven 2D game where a Deep Q Network (DQN) model controls a spaceship 
 ---
 
 ## Dependencies
+Update: did a "pip freeze > requirements.txt" on 10/22/18 using the virtualenv used in testing this project.
 * Ubuntu 16.04
 * pygame >= 1.9.3
+* Keras == 2.2.0
+* Keras-Applications==1.0.2
+* Keras-Preprocessing==1.0.1
+* numpy==1.14.5
+* opencv-python==3.4.1.15
+* scikit-image==0.14.1
+
 
 ## Basic Build Instructions
 1. Open up a bash terminal
-2. python turret_hunter.py
+2. python TurretHunter.py
 
 #### To Do (in no particular order)
 - [ ] Make a minimal ML example to see if the game environment/simulator is sufficient
@@ -27,7 +35,7 @@ A pygame-driven 2D game where a Deep Q Network (DQN) model controls a spaceship 
 - [ ] Quantify the degree of difference perhaps percentage pixel similarity
 - [ ] Give the ship some sort of Episodic Memory
 - [x] Put a setting for autonomous or player controlled (IS_AUTONOMOUS flag)
-- [x] Implement a reset mechanism 
+- [x] Implement a reset mechanism
 - [x] Make the ship controllable by arrow keys
 - [x] Try the Pong DQN and see if it learns spaceship commands
 - [x] Write a README.md

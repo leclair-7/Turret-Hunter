@@ -1,22 +1,19 @@
+'''
+Magic variables that will be used throughout this project defined here
+
+Trying to err on the organizational scheme of macro-game level definitions towards the top
 
 '''
-started out as 700 x 500
 
-'''
-# x dim
-WIDTH = 575
-# y_dim
-HEIGHT = 380
 
-FPS = 60
 
-# Define some colors
-BLACK    = (   0,   0,   0)
-WHITE    = ( 255, 255, 255)
-GREEN    = (   0, 255,   0)
-RED      = ( 255,   0,   0)
-BLUE     = (   0,   0, 255)
-BROWN	 = ( 165,  42,  42)
+REPLAY_SIZE = 10000
 
-PI = 3.141592
-CIRCLE_RADIUS = 2
+NUM_ACTIONS = 5
+
+
+
+MINIBATCH = 32
+
+
+
