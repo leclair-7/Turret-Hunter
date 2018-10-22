@@ -3,7 +3,7 @@ import pygame
 import random
 import math
 import time
-from collections import deque
+from collections import deque, namedtuple
 
 import cv2
 import skimage
@@ -28,6 +28,9 @@ Action set:
 4-fire
 '''
 
+REPLAY_SIZE = 10000
+
+
 NUM_ACTIONS = 5
 
 #Resizing for model training
@@ -42,8 +45,11 @@ HEIGHT = 600
 FPS    = 60
 
 WITH_ASTEROIDS = False
-IS_AUTONOMOUS = True
+IS_AUTONOMOUS = False
 
+EPSILON_DECAY_LAST_FRAME = 10**5
+EPSILON_START = 1.0
+EPSILON_FINAL = 0.02
 
 # define colors
 WHITE  = (255, 255, 255)
@@ -69,6 +75,8 @@ mobs = pygame.sprite.Group()
 player_bullets = pygame.sprite.Group()
 turret_bullets = pygame.sprite.Group()
 turrets = pygame.sprite.Group()      
+
+Experience = namedtuple('Experience', field_names=['state', 'action', 'reward', 'done', 'new_state'])
 
 
 class Player(pygame.sprite.Sprite):
@@ -102,6 +110,8 @@ class Player(pygame.sprite.Sprite):
         self.rotate(True)
 
         self.shield = 50
+
+        self.health = 1
 
     def rotate(self, force=False):
         """
@@ -399,6 +409,7 @@ class TurretHunterGame:
             for ship_impact in hit_player:
                 self.player.shield -= 1
                 self.score -= 1
+                self.player.health -= 1
             
             #see if mobs(asteroids) hit a player 
             hit_player = pygame.sprite.spritecollide(self.player, mobs, True, pygame.sprite.collide_circle)
@@ -412,6 +423,9 @@ class TurretHunterGame:
                 print("hit a turret", self.num_turrets -1)
                 self.score += 1
                 self.num_turrets -= 1
+            
+            if self.player.health <1:
+                return [ self.score, "Game time:", round((now - start),4), "Frame number: ",frameno ]
 
             # Draw / render
             screen.fill(BLACK)
@@ -434,14 +448,14 @@ class TurretHunterGame:
                 screen.blit(text_player_shield, [10, 38] )
                 screen.blit(TurretsLeft, [10, 66] )
             # *after* drawing everything, flip the display
-
             pygame.display.flip()            
             pygame.event.pump()
-
+            time.sleep(1)
             if not IS_AUTONOMOUS and self.num_turrets == 0:
                 self.running = False
             elif IS_AUTONOMOUS and self.num_turrets == 0:
                 now = time.time() 
+                '''
                 print("this one")
                 observ = pygame.surfarray.array3d(pygame.display.get_surface())
                 print("game board before image transform", observ.shape)
@@ -456,7 +470,9 @@ class TurretHunterGame:
                     timelist.append( (finish_time - start_time) )
                 print("This is the NN prediction time:", timelist)
                 print("Average inference time", sum(timelist) / len(timelist))
-                return [ self.score, round((now - start),4), frameno ]
+                print("Number of parameters",self.agent.model.count_params())
+                '''
+                return [ self.score, "Game time:", round((now - start),4), "Frame number: ",frameno ]
         now = time.time()
                         
         return [ self.score, (now - start) ]
@@ -501,6 +517,27 @@ class Agent:
         #print("observation.shape", observation.shape)
         q_value = self.model.predict(observation)
         return np.argmax(q_value)
+
+    def play_train_step(self, epsilon):
+        '''
+        plays a step in the training step, outputs an
+        Experience()
+
+        Input: epsilon is the exploration/exploitation parameter 
+        '''
+
+        epsilon = max(EPSILON_FINAL, EPSILON_START - frame_idx / EPSILON_DECAY_LAST_FRAME)
+            
+        if np.random.random() < epsilon:
+            # pick a random action
+            action = env.action_space.sample()
+    def play_test_step(self):
+        '''
+        outputs the command of what the agent should do
+        one of: up, down, left, right, fire
+        '''
+        pass
+
 
 all_sprites = pygame.sprite.Group()
 mobs = pygame.sprite.Group()

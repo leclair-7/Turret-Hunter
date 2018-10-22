@@ -1,0 +1,11 @@
+
+
+Turret_Hunter_helperfiles/
+
+
+
+.ipynb_checkpoints
+
+*.pyc
+
+__pycache__
