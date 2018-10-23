@@ -1,6 +1,9 @@
 
 from TurretHunter import *
+
 from Agent import *
+
+import time
 
 TOTAL_TrainTime = 10**5
 
@@ -67,7 +70,7 @@ def TrainExperiment():
 		# Move TrainTime Click
 		TrainTime = TrainTime+1        
 
-		if TrainTime % 250 == 0:
+		if TrainTime % 500 == 0:
 			print("Saving weights at: ", TrainTime)
 			TheAgent.SaveBestWeights(TrainTime)
 			# Complete the Game Loop
@@ -76,7 +79,10 @@ def TrainExperiment():
 def main():
     #
 	# Main Method Just Play our Experiment
+	a = time.time()
 	TrainExperiment()
+	b = time.time()
+	print("It took {}".format((b-a), "seconds to train") )
 
 	# =======================================================================
 if __name__ == "__main__":

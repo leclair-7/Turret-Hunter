@@ -12,6 +12,7 @@ from keras.layers import *
 from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
 from keras.optimizers import *
+import tensorflow as tf
 
 import cv2
 import skimage
@@ -35,14 +36,14 @@ EPSILON_FINAL = 0.02
 NUM_ACTIONS   = 5
 OBSERVEPERIOD = 2500
 
-EXPERIENCE_REPLAY_CAPACITY = 10000
+EXPERIENCE_REPLAY_CAPACITY = 50000
 
 BATCH_SIZE = 32
 GAMMA = 0.975
 
 class Agent:
     def __init__(self):
-
+        
         self.domination = True
         self.model = self.createModel(NUM_ACTIONS)
 
@@ -54,10 +55,10 @@ class Agent:
         self.frame_idx = 0
 
     def LoadTrainedModel(self):
-        self.model.load_weights("TurretHunterModelWeights10000.h5")
+        self.model.load_weights("./ModelWeights/TurretHunterModelWeights11000.h5")
         self.model.compile(loss='mse',optimizer='rmsprop')
         self.epsilon = 0.0
-        
+
     def ProcessGameImage(self, RawImage):
         base = np.copy(RawImage)
         img = color.rgb2gray(base)
@@ -139,14 +140,13 @@ class Agent:
             inputs = np.zeros((BATCH_SIZE, IMGHEIGHT,IMGWIDTH ,IMGHISTORY))   #BatchSize, 40, 40, 4
             targets = np.zeros((inputs.shape[0], NUM_ACTIONS)) 
         
-            Q_sa =0
+            Q_sa = 0
 
-            for i in (BATCH_SIZE):
+            for i in range(BATCH_SIZE):
                 state_t  = minibatch[i][0]
                 action_t = minibatch[i][1]   #This is action index
                 reward_t = minibatch[i][2]
                 state_t1 = minibatch[i][3]
-
 
                 # Fill out inputs
                 inputs[i:i + 1] = state_t

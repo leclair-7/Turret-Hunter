@@ -51,10 +51,10 @@ class TurretHunterGame:
 
         self.player = Player((WIDTH//2, HEIGHT), IS_AUTONOMOUS)
 
-        self.turret_list = [ (20, 60 ,180),
-                        (420, 20,145),
-                        (240,100,135),                
-                       ]
+        self.turret_list = [ (20, 60 ,225),
+                             (420, 20,145),
+                             (240,100,180),                
+                           ]
         self.num_turrets = len(self.turret_list)
 
         for t in self.turret_list:
@@ -141,7 +141,7 @@ class TurretHunterGame:
 
         self.CollisionDetectionCalculations()
 
-        if self.num_turrets == 0:
+        if self.num_turrets == 0 or self.score < -10:
             self.EmptySpriteGroups()
             self.__init__()
             self.numGamesPlayed += 1
