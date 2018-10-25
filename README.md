@@ -13,7 +13,7 @@ A pygame-driven 2D game where a Deep Q Network (DQN) model controls a spaceship 
 ---
 
 ## Dependencies
-Update: did a "pip freeze > requirements.txt" on 10/22/18 using the virtualenv used in testing this project.
+Update: did a "pip freeze > requirements.txt" on 10/22/18 using the virtualenv used in testing this project which includes many extraneous libraries; the ones below are actually used in the code.
 * Ubuntu 16.04
 * pygame >= 1.9.3
 * Keras == 2.2.0
@@ -25,19 +25,22 @@ Update: did a "pip freeze > requirements.txt" on 10/22/18 using the virtualenv u
 
 
 ## Basic Build Instructions
-(** TO DO ** )
+(** TO DO .. need to incorporate command line inputs/training/testing with particular and available models** )
 1. Open up a bash terminal
 2. python -m venv TurretHunterEnv
-3. pip install -r requirements.txt
-4. source ./TurretHunterEnv/bin/activate
+3. source ./TurretHunterEnv/bin/activate
+4. pip install -r requirements.txt
 5. python TurretHunter.py
 
 #### To Do (in no particular order)
+- [ ] Train model on current map to see if it converges (somehow make 12 hours of free GPU time)
+- [ ] Command line inputs
 - [ ] Edit Build Instructions in this README.md
-- [ ] Make a minimal ML example to see if the game environment/simulator is sufficient
-- [ ] Put walls in the game for non-player ships to hide
+- [x] Make a minimal ML example to see if the game environment/simulator is sufficient
+- [x] Put walls in the game for non-player ships to hide
 - [ ] Randomize wall creation on successive maps
-- [ ] Quantify the degree of difference perhaps percentage pixel similarity
+- [ ] Quantify the degree of difference perhaps percentage pixel similarity on non-player/agent parts of the game screen
+- [ ] Come up to date on RL research so we can do the next To Do:
 - [ ] Give the ship some sort of Episodic Memory
 - [x] Put a setting for autonomous or player controlled (IS_AUTONOMOUS flag)
 - [x] Implement a reset mechanism
@@ -47,7 +50,7 @@ Update: did a "pip freeze > requirements.txt" on 10/22/18 using the virtualenv u
 
 
 ## The Model
-* To be completed * (initially this will be related to the popular pong DQN)
+* To be completed * (initially this will be related to the popular pong DQN from deepmind)
 
 ## What it looks like
 ![Bonne journée!!][image1]
