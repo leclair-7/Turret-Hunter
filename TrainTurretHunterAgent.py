@@ -5,7 +5,7 @@ from Agent import *
 
 import time
 
-TOTAL_TrainTime = 10**5
+TOTAL_TrainTime = 5 * 10**4
 
 def TrainExperiment():
 	TrainTime = 0
@@ -34,12 +34,10 @@ def TrainExperiment():
 	# Keras expects shape 1x40x40x4
 	GameState = GameState.reshape(1, GameState.shape[0], GameState.shape[1], GameState.shape[2])
 	#Main Experiment Loop 
+	a = time.time()
+	b = time.time()
 	while ((TrainTime < TOTAL_TrainTime) and NotQuit):    
-	
-		# First just Update the Game Display
-		#if TrainTime % 100 == 0:
-		#	TheGame.UpdateGameDisplay(TrainTime,TheAgent.epsilon)
-
+		
 		# Determine Next Action From the Agent
 		BestAction = 0
 
@@ -70,9 +68,13 @@ def TrainExperiment():
 		# Move TrainTime Click
 		TrainTime = TrainTime+1        
 
-		if TrainTime % 500 == 0:
+		if TrainTime % 100 == 0:
+			b = time.time()
+			print("epsilon of player: ",TheAgent.epsilon)
 			print("Saving weights at: ", TrainTime)
 			TheAgent.SaveBestWeights(TrainTime)
+			print("Done saving, on to the next few Samples, it took","{} seconds to run 100 batches".format(b-a))
+			a = time.time()
 			# Complete the Game Loop
 			#NotQuit = False
 

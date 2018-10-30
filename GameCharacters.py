@@ -17,7 +17,9 @@ BLUE   = (0, 0, 255)
 YELLOW = (255, 255, 0)
 BROWN  = ( 165,  42,  42)
 
-TURRET_FIRE_DELAY = 500
+TURRET_FIRE_DELAY = 800
+
+VELOCITY_SCALER = 6
 
 SPIN_DICT = {pygame.K_LEFT  :  1,
              pygame.K_RIGHT : -1}
@@ -27,6 +29,7 @@ mobs = pygame.sprite.Group()
 player_bullets = pygame.sprite.Group()
 turret_bullets = pygame.sprite.Group()
 turrets = pygame.sprite.Group()
+walls = pygame.sprite.Group()
 
 class Player(pygame.sprite.Sprite):
 
@@ -87,12 +90,12 @@ class Player(pygame.sprite.Sprite):
             
             if   action == 0:
                 #up
-                self.velocity = 4
+                self.velocity = VELOCITY_SCALER
                 self.speedx = round(-1 * self.velocity * math.cos(self.move_angle)  )
                 self.speedy = round(     self.velocity * math.sin(self.move_angle)  )
             elif action == 1:
                 #down
-                self.velocity = 4
+                self.velocity = VELOCITY_SCALER
                 self.speedx = -1 * round(-1 * self.velocity * math.cos(self.move_angle)  )
                 self.speedy = -1 * round(     self.velocity * math.sin(self.move_angle)  )       
             elif action == 2 or action == 3:
@@ -131,11 +134,11 @@ class Player(pygame.sprite.Sprite):
             self.move_angle = math.radians(self.angle - 90)
             
             if keystate[pygame.K_UP]:
-                self.velocity = 4
+                self.velocity = VELOCITY_SCALER
                 self.speedx = round(-1 * self.velocity * math.cos(self.move_angle)  )
                 self.speedy = round(     self.velocity * math.sin(self.move_angle)  )
             elif keystate[pygame.K_DOWN]:
-                self.velocity = 4
+                self.velocity = VELOCITY_SCALER
                 self.speedx = -1 * round(-1 * self.velocity * math.cos(self.move_angle)  )
                 self.speedy = -1 * round(     self.velocity * math.sin(self.move_angle)  )       
 
@@ -165,7 +168,7 @@ class Player(pygame.sprite.Sprite):
 
 class Turret(pygame.sprite.Sprite):
 
-    def __init__(self, x, y, angle):
+    def __init__(self, x, y, angle, speedx=0, speedy=0):
         pygame.sprite.Sprite.__init__(self)
 
         self.image = pygame.Surface( (50,50) )
@@ -181,6 +184,9 @@ class Turret(pygame.sprite.Sprite):
         self.health = 5
         self.angle = angle
         self.next_fire = pygame.time.get_ticks() + TURRET_FIRE_DELAY
+
+        self.speedx = speedx
+        self.speedy = speedy
         
     def shoot(self):
 
@@ -196,6 +202,58 @@ class Turret(pygame.sprite.Sprite):
     
     def update(self):
         self.shoot()
+
+        if self.speedx != 0 or self.speedy != 0:
+            self.rect.x += self.speedx
+            self.rect.y += self.speedy
+
+            #print(self.rect.top)
+            #Want the fun turret to go up/down
+            if self.rect.top > 495:
+                self.speedy = -1 * self.speedy
+                self.rect.y += self.speedy
+            
+            if self.rect.top < 0:
+                self.speedy *= -1
+                self.rect.y += self.speedy
+            '''
+            #Code to see if it hit a screen boundary
+            if self.rect.right > WIDTH:
+                self.rect.right = WIDTH
+            elif self.rect.left < 0:
+                self.rect.left = 0
+
+            if self.rect.top < HEIGHT - HEIGHT:
+                self.rect.top = HEIGHT - HEIGHT
+            elif self.rect.bottom > HEIGHT:
+                self.rect.bottom = height
+            '''
+
+class Wall(pygame.sprite.Sprite):
+
+    def __init__(self, x, y, angle):
+        pygame.sprite.Sprite.__init__(self)
+
+        self.image = pygame.Surface( (250,30) )
+        self.image.fill(GREY)
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+        self.radius = int(self.rect.width )
+        # circle for collision detect debug line
+        #pygame.draw.circle(self.image, RED, self.rect.center, self.radius)
+        
+        self.speedx = 0
+        self.speedy = 2
+
+    def draw(self, surface):
+        surface.blit(self.rect)
+    
+    def update(self):
+        pass
+        
+    
 
 class Bullet(pygame.sprite.Sprite):
 

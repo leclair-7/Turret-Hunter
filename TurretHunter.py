@@ -43,7 +43,7 @@ class TurretHunterGame:
         pygame.display.set_caption("Turret Hunter")
         self.clock = pygame.time.Clock()
 
-        self.agent = Agent()
+        #self.agent = Agent()
 
         self.score = 0
         self.meteor_filename = "meteorBrown_big2.png"
@@ -51,17 +51,26 @@ class TurretHunterGame:
 
         self.player = Player((WIDTH//2, HEIGHT), IS_AUTONOMOUS)
 
-        self.turret_list = [ (20, 60 ,225),
-                             (420, 20,145),
-                             (240,100,180),                
+        self.turret_list = [ (20, 60 ,180), # shoots down right
+                             (240,100,225) # shoots down                
+                             
                            ]
+        wall = Wall(90,300,225)
+
+        walls.add(wall)
+        all_sprites.add(wall)
+
         self.num_turrets = len(self.turret_list)
 
         for t in self.turret_list:
             new_turret = Turret(t[0], t[1], t[2])
             all_sprites.add( new_turret )
             turrets.add(new_turret)
-        
+
+        self.funTurret = Turret(420, 20, 145, 0, 2) # shoots down left
+        all_sprites.add(self.funTurret)
+        turrets.add(self.funTurret)
+
         if WITH_ASTEROIDS:
             for i in range(8):
                 m = Mob()
@@ -82,27 +91,31 @@ class TurretHunterGame:
             mobs.add(m)
         
         # Player bullets cancel out turret bullets 
-        pygame.sprite.groupcollide(player_bullets, turret_bullets, True, True)
+        #pygame.sprite.groupcollide(player_bullets, turret_bullets, True, True)
 
         # See if turret bullets hit a player 
         hit_player = pygame.sprite.spritecollide(self.player, turret_bullets, True, pygame.sprite.collide_circle)
         for ship_impact in hit_player:
-            self.player.shield -= 1
             self.score -= 1
-            self.player.health -= 1
+            #print("Got hit by a turret", self.score)
+            #self.player.shield -= 1
+            #self.player.health -= 1
         
         #see if mobs(asteroids) hit a player 
         hit_player = pygame.sprite.spritecollide(self.player, mobs, True, pygame.sprite.collide_circle)
         for ship_impact in hit_player:
             self.player.shield -= 1
-            self.score -= 1
-        
+            self.score -= 1    
+
         #see if turret bullets hit a player 
         hits = pygame.sprite.groupcollide(player_bullets, turrets,True,True)
         for ship_impact in hits:
             #print("hit a turret", self.num_turrets -1)
             self.score += 1
             self.num_turrets -= 1
+        
+        pygame.sprite.groupcollide(player_bullets, walls, True, False)
+        pygame.sprite.groupcollide(turret_bullets, walls, True, False)        
 
     def InitialDisplay(self):
         #for each frame, calls the event queue, like if the main window needs to be repainted
@@ -121,6 +134,7 @@ class TurretHunterGame:
         player_bullets.empty()
         turret_bullets.empty()
         turrets.empty()
+        walls.empty()
 
     #  Game Update Inlcuding Display
     def PlayNextMove(self, action):
@@ -141,7 +155,7 @@ class TurretHunterGame:
 
         self.CollisionDetectionCalculations()
 
-        if self.num_turrets == 0 or self.score < -10:
+        if self.num_turrets == 0 or self.score < -25:
             self.EmptySpriteGroups()
             self.__init__()
             self.numGamesPlayed += 1
@@ -158,6 +172,8 @@ class TurretHunterGame:
         #action is in range(5)
         self.player.get_event(None, action)
 
+        self.CollisionDetectionCalculations()
+        
         # Update Sprites
         all_sprites.update()
         self.player.update()
@@ -165,9 +181,8 @@ class TurretHunterGame:
         all_sprites.draw(self.screen)
         self.player.draw(self.screen)
 
-        self.CollisionDetectionCalculations()
-
-        if self.num_turrets == 0:
+        print("In PlayNextMoveTest score:", self.score)
+        if self.num_turrets == 0 or self.score < -25:
             self.EmptySpriteGroups()
             self.__init__()
             self.numGamesPlayed += 1
@@ -279,22 +294,12 @@ class TurretHunterGame:
                         
         return [ self.score, (now - start) ]
 
-def getTest():          
-    th.__init__()
-    score_and_time = th.playGame()
-    all_sprites.empty()
-    mobs.empty()
-    player_bullets.empty()
-    turret_bullets.empty()
-    turrets.empty()
-    return score_and_time
-
-
 if __name__=='__main__':
 
     th = TurretHunterGame()
     th.PlayGame()
 
+    pygame.quit()
     '''
     th.InitialDisplay()
 
@@ -319,7 +324,6 @@ if __name__=='__main__':
     print("finished the game")
     '''
 
-    pygame.quit()
     '''
 
 

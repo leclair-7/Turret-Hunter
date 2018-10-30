@@ -28,7 +28,7 @@ IMGHEIGHT = 50
 IMGWIDTH = 50
 IMGHISTORY = 4
 
-EPSILON_DECAY_LAST_FRAME = 10**5
+EPSILON_DECAY_LAST_FRAME =  2 * 10**4
 EPSILON_START = 1.0
 EPSILON_FINAL = 0.02
 
@@ -36,9 +36,9 @@ EPSILON_FINAL = 0.02
 NUM_ACTIONS   = 5
 OBSERVEPERIOD = 2500
 
-EXPERIENCE_REPLAY_CAPACITY = 50000
+EXPERIENCE_REPLAY_CAPACITY = 10000
 
-BATCH_SIZE = 32
+BATCH_SIZE = 64
 GAMMA = 0.975
 
 class Agent:
@@ -55,7 +55,7 @@ class Agent:
         self.frame_idx = 0
 
     def LoadTrainedModel(self):
-        self.model.load_weights("./ModelWeights/TurretHunterModelWeights11000.h5")
+        self.model.load_weights("./ModelWeights/TurretHunterModelWeights18200.h5")
         self.model.compile(loss='mse',optimizer='rmsprop')
         self.epsilon = 0.0
 
@@ -101,8 +101,8 @@ class Agent:
 
         Input: epsilon is the exploration/exploitation parameter 
         '''
-
         pass
+
     def FindBestActionTrain(self,state):
             
         if np.random.random() < self.epsilon:
@@ -125,7 +125,9 @@ class Agent:
         self.steps += 1
 
         if self.steps > OBSERVEPERIOD:
+
             # Epsilon-greedy decay
+            #(self.steps - OBSERVEPERIOD) 
             self.epsilon = max(EPSILON_FINAL, EPSILON_START - (self.steps - OBSERVEPERIOD) / EPSILON_DECAY_LAST_FRAME)
 
     def Process(self):
