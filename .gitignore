@@ -1,7 +1,8 @@
 
 
 Turret_Hunter_helperfiles/
-
+ModelWeights/
+ModelWeights_bullets_cancel/
 
 *.h5
 .ipynb_checkpoints
