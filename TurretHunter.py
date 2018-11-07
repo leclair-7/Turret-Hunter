@@ -16,7 +16,7 @@ from GameCharacters import *
 WITH_ASTEROIDS = False
 IS_AUTONOMOUS = True
 
-FPS    = 60
+FPS    = 600000
 
 '''
 Action set:
@@ -44,7 +44,7 @@ class TurretHunterGame:
 
         #self.agent = Agent()
 
-        self.score = 0
+        self.score = 0.0
         self.meteor_filename = "meteorBrown_big2.png"
         self.meteor_img = pygame.image.load(path.join(img_dir, self.meteor_filename)).convert()
 
@@ -59,7 +59,6 @@ class TurretHunterGame:
         walls.add(wall)
         all_sprites.add(wall)
 
-        self.num_turrets = len(self.turret_list)
 
         for t in self.turret_list:
             new_turret = Turret(t[0], t[1], t[2])
@@ -70,6 +69,8 @@ class TurretHunterGame:
         all_sprites.add(self.funTurret)
         turrets.add(self.funTurret)
 
+        self.num_turrets = len(self.turret_list) + len([self.funTurret])
+
         if WITH_ASTEROIDS:
             for i in range(8):
                 m = Mob()
@@ -78,7 +79,30 @@ class TurretHunterGame:
 
         self.running = True
         self.numGamesPlayed = 0
-        
+    def collide_player_with_turret_bullets(self):
+        hit_player = pygame.sprite.spritecollide(self.player, turret_bullets, True, pygame.sprite.collide_circle)
+        for ship_impact in hit_player:
+            self.score -= 1
+            #print("Got hit by a turret", self.score)
+            #self.player.shield -= 1
+            #self.player.health -= 1
+    def collide_player_asteroid(self):
+        #see if mobs(asteroids) hit a player 
+        hit_player = pygame.sprite.spritecollide(self.player, mobs, True, pygame.sprite.collide_circle)
+        for ship_impact in hit_player:
+            self.player.shield -= 1
+            self.score -= 1
+    def collide_turret_bullet_with_player(self):
+        hits = pygame.sprite.groupcollide(player_bullets, turrets,True,True)
+        #for ship_impact in hits:
+        #print("hit a turret", self.num_turrets -1)
+        if hits:
+            self.score += 1
+            self.num_turrets -= 1
+    def collide_bullets_on_wall(self):
+        pygame.sprite.groupcollide(player_bullets, walls, True, False)
+        pygame.sprite.groupcollide(turret_bullets, walls, True, False)
+    
     def CollisionDetectionCalculations(self):
 
         hits = pygame.sprite.groupcollide(mobs, player_bullets, True, True)
@@ -93,28 +117,16 @@ class TurretHunterGame:
         #pygame.sprite.groupcollide(player_bullets, turret_bullets, True, True)
 
         # See if turret bullets hit a player 
-        hit_player = pygame.sprite.spritecollide(self.player, turret_bullets, True, pygame.sprite.collide_circle)
-        for ship_impact in hit_player:
-            self.score -= 1
-            #print("Got hit by a turret", self.score)
-            #self.player.shield -= 1
-            #self.player.health -= 1
+        self.collide_player_with_turret_bullets()
         
-        #see if mobs(asteroids) hit a player 
-        hit_player = pygame.sprite.spritecollide(self.player, mobs, True, pygame.sprite.collide_circle)
-        for ship_impact in hit_player:
-            self.player.shield -= 1
-            self.score -= 1    
+        # See if player hit asteroid 
+        self.collide_player_asteroid()
 
         #see if turret bullets hit a player 
-        hits = pygame.sprite.groupcollide(player_bullets, turrets,True,True)
-        for ship_impact in hits:
-            #print("hit a turret", self.num_turrets -1)
-            self.score += 1
-            self.num_turrets -= 1
+        self.collide_turret_bullet_with_player()
         
-        pygame.sprite.groupcollide(player_bullets, walls, True, False)
-        pygame.sprite.groupcollide(turret_bullets, walls, True, False)        
+        #see if bullets from player or turrets hit the wall
+        self.collide_bullets_on_wall()
 
     def InitialDisplay(self):
         #for each frame, calls the event queue, like if the main window needs to be repainted
@@ -221,6 +233,7 @@ class TurretHunterGame:
                     if event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_SPACE:
                             self.player.shoot()
+                            self.score -= .01
                         if event.key == pygame.K_ESCAPE:
                                 self.running = False
                     if event.type == pygame.QUIT:
@@ -228,6 +241,11 @@ class TurretHunterGame:
                     self.player.get_event(event, action)
             else:
                 if frameno < len(autonomous_commands):
+                    #penalize agent for shooting just a bit, and for not moving forward and back because it's boring to watch it not move
+                    if autonomous_commands[frameno] == 4:
+                        self.score -=.01
+                    elif autonomous_commands[frameno] == 2 or autonomous_commands[frameno] == 3:
+                        self.score -= .01 
                     self.player.get_event(event, autonomous_commands[frameno])
                 else:
                     post_command_set_count += 1
